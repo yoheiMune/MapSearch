@@ -31,29 +31,48 @@ class ViewController: UIViewController {
         
         // 検索バーの delegate を設定します.
         self.searchBar.delegate = self
+        
+        // 位置情報取得処理の delegate を設定します.
+        locationManager.delegate = self
 
         // 現在位置を取得するための権限を、ユーザーにリクエストする.
+        // 初めてリクエストする場合には、認可後に「localManager(_, didChangeAuthorization)」が呼び出されます.
         self.locationManager.requestWhenInUseAuthorization()
 
-        // ユーザーから利用OKをもらったら、
+        // (2回目以降の起動ではこちらが実行されます）
+        // ユーザーから利用OKがOKの場合には、
         let status = CLLocationManager.authorizationStatus()
         if status == .authorizedWhenInUse {
 
-            // 位置情報取得処理の delegate を設定します.
-            locationManager.delegate = self
-            
-            // 10m ごとに取得するように設定します.
-            locationManager.distanceFilter = 10
-            
-            // 位置情報の取得を開始.
-            locationManager.startUpdatingLocation()
+            // Map表示を開始します.
+            self.startMapDisplay()
         }
+    }
+    
+    // Map表示を開始します.
+    private func startMapDisplay() {
+        
+        // 10m ごとに取得するように設定します.
+        locationManager.distanceFilter = 10
+        
+        // 位置情報の取得を開始.
+        locationManager.startUpdatingLocation()
     }
 
 }
 
 // MARK: CLLocationManagerDelegate
 extension ViewController: CLLocationManagerDelegate {
+    
+    // ユーザーからの認可/不認可があった場合に呼び出されます.
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+                
+        // 位置情報取得がOKの場合、
+        if status == .authorizedWhenInUse {
+            // マップ表示を開始.
+            self.startMapDisplay()
+        }
+    }
     
     // 位置情報を取得する度に、呼び出されます.
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
