@@ -10,7 +10,7 @@ import UIKit
 import MapKit
 import CoreLocation
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, CLLocationManagerDelegate, UISearchBarDelegate, MKMapViewDelegate {
 
     // UI: マップ表示を行うView（Storyboardと連結）
     @IBOutlet weak var mapView: MKMapView!
@@ -58,11 +58,6 @@ class ViewController: UIViewController {
         // 位置情報の取得を開始.
         locationManager.startUpdatingLocation()
     }
-
-}
-
-// MARK: CLLocationManagerDelegate
-extension ViewController: CLLocationManagerDelegate {
     
     // ユーザーからの認可/不認可があった場合に呼び出されます.
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
@@ -77,8 +72,8 @@ extension ViewController: CLLocationManagerDelegate {
     // 位置情報を取得する度に、呼び出されます.
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         
-        // 初めて位置情報を取得したら、
-        if let location = locations.first {
+        // 取得した情報のうち、最新の位置情報を使います.
+        if let location = locations.last {
             
             // 経緯度を取得します.
             let lat = location.coordinate.latitude
@@ -86,16 +81,12 @@ extension ViewController: CLLocationManagerDelegate {
             print("latitude: \(lat), longitude: \(lng)")
             
             // 取得した経緯度が中心になるように、Mapの表示を変更します.
-            let coords = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+            let center = CLLocationCoordinate2D(latitude: lat, longitude: lng)
             let span = MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)  // 数字が小さいほど、拡大率Up.
-            let region = MKCoordinateRegion(center: coords, span: span)
+            let region = MKCoordinateRegion(center: center, span: span)
             mapView.setRegion(region, animated: true)
         }
     }
-}
-
-// MARK: UISearchBarDelegate
-extension ViewController: UISearchBarDelegate {
     
     // 検索バーでユーザーが検索したときに呼び出されます.
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
@@ -103,7 +94,7 @@ extension ViewController: UISearchBarDelegate {
         // キーボードを閉じます.
         searchBar.resignFirstResponder()
         
-        // 検索条件を作成すます.
+        // 検索条件を作成します.
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = searchBar.text
         
@@ -115,22 +106,18 @@ extension ViewController: UISearchBarDelegate {
         localSearch.start { result, error in
             
             // 検索結果を1つずつ処理します.
-            for placemark in (result?.mapItems)! {
+            for mapItem in (result?.mapItems)! {
                 
                 // 検索した場所にピンを刺します.
                 let annotation = MKPointAnnotation()
                 annotation.coordinate = CLLocationCoordinate2D(
-                    latitude: placemark.placemark.coordinate.latitude,
-                    longitude: placemark.placemark.coordinate.longitude)
-                annotation.title = placemark.name
+                    latitude: mapItem.placemark.coordinate.latitude,
+                    longitude: mapItem.placemark.coordinate.longitude)
+                annotation.title = mapItem.name
                 self.mapView.addAnnotation(annotation)
             }
         }
     }
-}
-
-// MARK: MkMapViewDelete
-extension ViewController: MKMapViewDelegate {
 
     // マップで、アノテーションがタップされた場合に呼び出されます.
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
